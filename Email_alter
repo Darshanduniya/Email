@@ -1,0 +1,21 @@
+
+from airflow import DAG
+from airflow.operators.email_operator import EmailOperator
+from datetime import datetime
+
+default_args = {
+    'owner': 'your_name',
+    'start_date': datetime(2023, 6, 8),
+}
+
+with DAG('email_notification_dag', default_args=default_args, schedule_interval=None) as dag:
+    send_email = EmailOperator(
+        task_id='send_email',
+        to='recipient@example.com',
+        subject='Airflow Email Notification',
+        html_content='<p>This is the email content.</p>'
+    )
+
+    # Add more tasks as needed
+
+    send_email
