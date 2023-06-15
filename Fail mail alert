@@ -1,0 +1,157 @@
+from datetime import datetime, timedelta
+
+from airflow import DAG
+
+from airflow.operators.python_operator import PythonOperator
+
+from airflow.operators.email_operator import EmailOperator
+
+from airflow.utils.email import send_email
+
+from airflow.exceptions import AirflowException
+
+def say_hello_one():
+
+    print("data engineer")
+
+    # raise AirflowException("DAG failed intentionally")
+
+def say_hello_two():
+
+    print("Big data")
+
+    # raise AirflowException("DAG failed intentionally")
+
+def say_hello_three():
+
+    print("Big data with AWS")
+
+    # raise AirflowException("DAG failed intentionally")
+
+def say_hello():
+
+    raise AirflowException("DAG failed intentionally")
+
+def send_email_on_failure(context):
+
+    subject = f"Airflow - DAG {context['dag'].dag_id} Failed"
+
+    body = f"The DAG {context['dag'].dag_id} has failed.\n\nTask: {context['task_instance'].task_id}\n\n"
+
+    try:
+
+        log_file_loc = context['task_instance'].log_filepath
+
+        with open(log_file_loc, 'r') as log_file:
+
+            log_contents = log_file.read()
+
+        body += f"Error Message:\n\n{log_contents}"
+
+    except Exception as e:
+
+        body += f"Error Message could not be retrieved. Error: {str(e)}"
+
+    send_email(['recipient1@example.com', 'recipient2@example.com', 'recipient3@example.com'], subject, body)
+
+def send_email_on_success(context):
+
+    subject = f"Airflow - DAG {context['dag'].dag_id} Completed"
+
+    body = f"The DAG {context['dag'].dag_id} has completed successfully."
+
+    send_email(['recipient1@example.com', 'recipient2@example.com', 'recipient3@example.com'], subject, body)
+
+dag = DAG(
+
+    'hello_world_with_email',
+
+    start_date=datetime(2023, 6, 8),
+
+    default_args={
+
+        'owner': 'airflow',
+
+        'email': ['your_email@example.com'],
+
+        'email_on_success': True,
+
+        'email_on_failure': True,
+
+        'email_on_retry': True,
+
+        'retries': 1,
+
+        'retry_delay': timedelta(minutes=5),
+
+    },
+
+    schedule_interval=None
+
+)
+
+hello_task_one = PythonOperator(
+
+    task_id='say_hello_one',
+
+    python_callable=say_hello_one,
+
+    dag=dag,
+
+    on_failure_callback=send_email_on_failure,
+
+)
+
+hello_task_two = PythonOperator(
+
+    task_id='say_hello_two',
+
+    python_callable=say_hello_two,
+
+    dag=dag,
+
+    on_failure_callback=send_email_on_failure,
+
+)
+
+hello_task_three = PythonOperator(
+
+    task_id='say_hello_three',
+
+    python_callable=say_hello_three,
+
+    dag=dag,
+
+    on_failure_callback=send_email_on_failure,
+
+)
+
+hello_task = PythonOperator(
+
+    task_id='say_hello',
+
+    python_callable=say_hello,
+
+    dag=dag,
+
+    on_failure_callback=send_email_on_failure,
+
+    on_success_callback=send_email_on_success,
+
+)
+
+email_task = EmailOperator(
+
+    task_id='send_email',
+
+    to=['recipient1@example.com', 'recipient2@example.com', 'recipient3@example.com'],
+
+    subject='Airflow - Hello World',
+
+    html_content='<p>Hello, World!</p>',
+
+    dag=dag,
+
+)
+
+hello_task_one >> hello_task_two >> hello_task_three >> hello_task >> email_task
