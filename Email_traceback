@@ -1,0 +1,51 @@
+import logging
+
+import re
+
+def send_email_on_failure(context):
+
+    subject = f"Airflow - DAG {context['dag'].dag_id} Failed"
+
+    body = f"The DAG {context['dag'].dag_id} has failed.\n\nTask: {context['task_instance'].task_id}\n\n"
+
+    try:
+
+        log_file_loc = context['task_instance'].log_filepath
+
+        with open(log_file_loc, 'r') as log_file:
+
+            log_contents = log_file.read()
+
+            error_message = re.search(r'\[ERROR\]\s*(.*?)\n\s*(Traceback\s*:\s*.*)\s*(File\s+.*?\.py\s*:\s*.*?)\s*(line\s+.*?)\s*(-\s*ValueError\s*:\s*(.*?))', log_contents)
+
+            if error_message:
+
+                body += f"Error Message:\n\n{error_message.group(1)}"
+
+                if error_message.group(2):
+
+                    body += f"\n\nStack Trace:\n\n{error_message.group(2)}"
+
+                if error_message.group(3):
+
+                    body += f"\n\nFile:\n\n{error_message.group(3)}"
+
+                if error_message.group(4):
+
+                    body += f"\n\nLine:\n\n{error_message.group(4)}"
+
+                if error_message.group(5):
+
+                    body += f"\n\nError:\n\n{error_message.group(5)}"
+
+            else:
+
+                body += f"Error Message could not be found in log file."
+
+    except Exception as e:
+
+        body += f"Error Message could not be retrieved. Error: {str(e)}"
+
+    logging.error(body)
+
+    send_email(['recipient1@example.com', 'recipient2@example.com', 'recipient3@example.com'], subject, body)
