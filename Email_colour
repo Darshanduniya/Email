@@ -1,0 +1,43 @@
+import traceback
+
+def send_email_on_failure(context):
+
+    subject = f"Airflow - DAG {context['dag'].dag_id} Failed"
+
+    body = f"The DAG {context['dag'].dag_id} has failed.\n\nTask: {context['task_instance'].task_id}\n\n"
+
+    try:
+
+        log_file_loc = context['task_instance'].log_filepath
+
+        with open(log_file_loc, 'r') as log_file:
+
+            log_contents = log_file.read()
+
+        # Highlight the word "ERROR" with HTML tags
+
+        log_contents = log_contents.replace('ERROR', '<strong style="color: yellow;">ERROR</strong>')
+
+        body += f"Error Message:\n\n{log_contents}"
+
+        
+
+        # Check if the error message contains the specific error you want to catch
+
+        if 'File not parsed completely/correctly' in log_contents:
+
+            send_email(['recipient1@example.com', 'recipient2@example.com', 'recipient3@example.com'], subject, body)
+
+            return  # Exit the function after sending the email
+
+            
+
+    except Exception as e:
+
+        body += f"Error Message could not be retrieved. Error: {str(e)}\n"
+
+        body += f"Traceback:\n\n{traceback.format_exc()}"
+
+    
+
+    send_email(['recipient1@example.com', 'recipient2@example.com', 'recipient3@example.com'], subject, body)
