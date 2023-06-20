@@ -1,0 +1,27 @@
+
+def send_email_on_failure(context):
+    subject = f"Airflow - DAG {context['dag'].dag_id} Failed"
+    body = f"The DAG {context['dag'].dag_id} has failed.\n\nTask: {context['task_instance'].task_id}\n\n"
+    try:
+        log_file_loc = context['task_instance'].log_filepath
+        with open(log_file_loc, 'r') as log_file:
+            log_contents = log_file.readlines()
+        error_lines = []
+        for i, line in enumerate(log_contents):
+            if 'ERROR:' in line:
+                error_lines = log_contents[max(0, i - 3):i]  # Get the 3 lines above the line containing "ERROR:"
+                break
+
+        if error_lines:
+            body += "Error Message:\n\n" + "".join(error_lines)
+            send_email(['recipient1@example.com', 'recipient2@example.com', 'recipient3@example.com'], subject, body)
+            return  # Exit the function after sending the email
+
+    except Exception as e:
+        body += f"Error Message could not be retrieved. Error: {str(e)}\n"
+        body += f"Traceback:\n\n"
+        traceback_lines = traceback.format_exc().splitlines()
+        for line in traceback_lines[:10]:  # Capture only the first 10 lines of the traceback
+            body += line + "\n"
+
+    send_email(['recipient1@example.com', 'recipient2@example.com', 'recipient3@example.com'], subject, body)
