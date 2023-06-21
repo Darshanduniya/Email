@@ -1,0 +1,13 @@
+send_success_email = EmailOperator(
+
+    task_id='send_success_email',
+
+    to=['recipient1@example.com', 'recipient2@example.com', 'recipient3@example.com'],
+
+    subject='Airflow - DAG Completed Successfully',
+
+    html_content='The DAG has completed successfully.',
+
+    dag=dag,
+
+)
