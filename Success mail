@@ -1,0 +1,13 @@
+def send_email_on_success(context):
+
+    dag_run = context['dag_run']
+
+    
+
+    if dag_run.get_state() == 'success' and all(task.state == 'success' for task in dag_run.get_task_instances()):
+
+        subject = f"Airflow - DAG {context['dag'].dag_id} Completed"
+
+        body = f"The DAG {context['dag'].dag_id} has completed successfully."
+
+        send_email(['recipient1@example.com', 'recipient2@example.com', 'recipient3@example.com'], subject, body)
